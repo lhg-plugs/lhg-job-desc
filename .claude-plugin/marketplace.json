@@ -1,0 +1,1 @@
+{"$schema":"https://json.schemastore.org/claude-code-marketplace.json","name":"lhg-plugs","owner":{"name":"刘洪光"},"plugins":[{"description":"JD撰写专家：岗位信息→职责/任职资格撰写→JD评分→多版本输出，18条审计规则","name":"lhg-job-desc","source":"./"}]}

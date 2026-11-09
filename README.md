@@ -1,94 +1,109 @@
 <!-- About 简介（推送后填写到仓库 About 栏）：
-JD撰写专家：岗位信息→职责/任职资格→评分→多版本，18条规则审计偏见词 ｜ 一键安装：/plugin marketplace add lhg-plugs/lhg-job-desc
+JD撰写专家：岗位信息→职责/任职资格撰写→JD评分→多版本输出（招聘网站版/内推版），附18条确定性审计规则（偏见词/配比/薪资/错别字）。 ｜ 一键安装：/plugin marketplace add lhg-plugs/lhg-job-desc
 -->
-<!-- topics（推送后打）：claude-code, claude-plugin, agent-skills, jd, recruiting, hiring -->
+<!-- topics（推送后打）：claude-code, claude-plugin, agent-skills, jd, job-description, recruiting, hiring, inclusive-language -->
 
-# lhg-job-desc：JD撰写专家
+<p align="center">
+  <img src="./assets/readme/hero.svg" width="100%" alt="lhg-job-desc — JD撰写专家">
+</p>
 
-> **一句话介绍**：给 AI 助手装上"JD 撰写组合拳"——粘贴岗位信息，六章结构撰写→职责/任职资格分级→JD 评分→招聘网站版/内推版/猎头版多版本输出，18 条确定性规则自动拦截性别/年龄/户籍歧视词。
->
-> **一键安装**：在 Claude Code 里运行
-> ```
-> /plugin marketplace add lhg-plugs/lhg-job-desc
-> /plugin install lhg-job-desc@lhg-plugs
-> ```
+> **一句话介绍**：JD撰写专家：岗位信息→职责/任职资格撰写→JD评分→多版本输出（招聘网站版/内推版），附18条确定性审计规则（偏见词/配比/薪资/错别字）。
 
-> **⚠️ 先说红线**：本插件**不写任何歧视性表述**——限男性/35岁以下/限户籍/已婚已育优先/形象气质佳等，
-> 写进去会被审计脚本判 blocker 并被发布硬门拦截；**不编造公司信息**——融资/规模/荣誉没有来源一律标 `[待确认]`。
+**一键安装**：在 Claude Code 里运行
+
+```bash
+/plugin marketplace add lhg-plugs/lhg-job-desc
+/plugin install lhg-job-desc@lhg-plugs
+```
+
+## 它能帮你做出什么
+
+每条产出先过确定性脚本自查，再交人工复核清单——数字全部数自仓库里的审计脚本，不靠模型"自觉"。
+
+| 自查脚本 | 规则数 | blocker | warning | nit | 覆盖 |
+|---|---|---|---|---|---|
+| `scripts/audit/jd_audit.py` | 18 | 5 | 10 | 3 | 包容性、结构、薪资、篇幅、文字、完整、格式 |
+| **合计** | **18** | **5** | **10** | **3** | |
+
+- **零 LLM 成本**：规则是纯 Python 脚本，零第三方依赖，本地运行。
+- **坏 / 好对照可验**：`fixtures/` 里备有坏/好用例，冒烟测试断言命中情况。
+- **冒烟全绿**：`python3 smoke_test.py` 51 项全部通过（JSON 合法、frontmatter 完整、命令/skill/agent 齐全）。
 
 ## 它是什么
 
 `lhg-job-desc` 是一个 Claude Code 插件（plugin 为主、skill 为辅）：
 
-- **4 个命令**（小白入口）：`jd` 撰写一条龙，`jd-check` 自查，`jd-score` 评分，`jd-versions` 多版本
-- **4 个平台中立 skill**（方法论，可移植到豆包/Workbuddy 等）：JD 六章结构、职责撰写、任职资格分级、包容性语言
-- **2 个专家 agent**：JD 撰写专家、JD 审计专家
-- **2 个硬门 hooks**：发布前审计拦截（blocker 未清零不许发布）、写 JD 文件歧视词即时警告（均可一键豁免）
-- **18 条确定性审计规则**：5 条包容性（性别/年龄/户籍/婚育/外貌）+ 3 条结构 + 3 条薪资 + 2 条篇幅 + 3 条完整 + 2 条格式，纯 Python、零第三方依赖，秒级出结果
+- **4 个命令**（小白入口）：`jd` JD撰写一条龙、`jd-check` JD自查、`jd-score` JD评分、`jd-versions` JD多版本
+- **4 个平台中立 skill**（方法论，可移植到豆包/Workbuddy 等 agent 平台）：lhg-jd-duty, lhg-jd-inclusive, lhg-jd-qual, lhg-jd-structure
+- **2 个专家 agent**：jd-auditor, jd-writer
+- **2 个 hooks**（`hooks/`：post_jd_warn.py, pre_jd_publish.py），关键操作前自动把关
+- **18 条确定性自查规则**：纯 Python 脚本，见上表
 
-## 4 个命令用法
+## 为什么是它
+
+不是一个 prompt，而是一套互相兜底的机制：
+
+1. **确定性脚本（机器）+ 人工复核清单（人）**：先跑 `scripts/` 下的审计脚本（共 18 条规则），发现分三级：**blocker**（必须修）、**warning**（修或写豁免理由）、**nit**（顺手修）；再按对应 skill 的复核清单过一遍脚本抓不到的（内容真实性、越权、口径一致）。blocker 清零才算做完；为清零改规则算作弊，不许。
+2. **硬门，不是提醒**：hooks 在关键操作前自动拦截或警告（见 `hooks/`），而不是只在文档里写一句"请注意"。
+3. **方法论沉淀在 skill 里**：流程、检查清单、口径都写在 `skills/` 的方法论里，命令只是入口；换个 agent 平台也能复用同一套做法。
+4. **可验，不是可信**：`fixtures/` 备有坏/好对照用例，`smoke_test.py` 一键验证，规则有没有生效、自己跑一遍就知道。
+
+## 快速上手
+
+```bash
+# 1. 安装（Claude Code 里运行）
+/plugin marketplace add lhg-plugs/lhg-job-desc
+/plugin install lhg-job-desc@lhg-plugs
+
+# 2. JD撰写一条龙：岗位信息输入→六章结构撰写（职责/任职资格）→JD评分→多版本输
+/lhg-job-desc:jd（然后粘贴岗位信息）
+```
 
 | 命令 | 作用 | 示例 |
 |---|---|---|
-| `/lhg-job-desc:jd` | 岗位信息→六章 JD→评分→多版本，一条龙 | `/lhg-job-desc:jd`（然后粘贴岗位信息） |
-| `/lhg-job-desc:jd-check` | JD 自查：18 条规则审计 + 人工复核 4 项 | `/lhg-job-desc:jd-check jd.md --fix` |
-| `/lhg-job-desc:jd-score` | JD 评分：审计 + 5 维 10 分制打分表 | `/lhg-job-desc:jd-score jd.md` |
-| `/lhg-job-desc:jd-versions` | 多版本：招聘网站版/内推版/猎头版 | `/lhg-job-desc:jd-versions jd.md` |
+| `/lhg-job-desc:jd` | JD撰写一条龙：岗位信息输入→六章结构撰写（职责/任职资格）→JD评分→多版本输出（招聘网站版/内推版）… | `/lhg-job-desc:jd（然后粘贴岗位信息）` |
+| `/lhg-job-desc:jd-check` | JD自查：跑18条确定性审计规则（偏见词/职责要求配比/薪资缺失/错别字）… | `/lhg-job-desc:jd-check jd.md --fix` |
+| `/lhg-job-desc:jd-score` | JD评分：18条规则审计+5维10分制人工打分，输出可发布的量化评分表与改进清单。 | `/lhg-job-desc:jd-score jd.md` |
+| `/lhg-job-desc:jd-versions` | JD多版本：一份岗位信息输出招聘网站版（完整六章+搜索关键词）/内推版（300字内+钩子）/猎头版（画像+卖点）。 | `/lhg-job-desc:jd-versions jd.md` |
 
-## 自查说明
+## 什么时候用 / 什么时候不用（FAQ）
 
-自查 = 确定性脚本（机器）+ 人工复核清单（人）：
+**什么时候用：**
 
-1. 先跑 `scripts/audit/jd_audit.py --target <JD文件或目录>`，零成本；
-2. 发现分三级：**blocker**（性别/年龄/户籍歧视词、缺核心章节、占位符残留，必须清零）、**warning**（婚育/外貌歧视、职责空话、薪资缺失/过宽、错别字、配比失衡，逐条修或给理由）、**nit**（JD 过短、标点不统一）；
-3. 再按 `jd-check` 命令过一遍脚本抓不到的 4 项（职责是否说人话、要求是否招得到人、薪资是否有诚意、公司介绍是否像广告）。
+- 你需要JD撰写一条龙时 → 用 `/lhg-job-desc:jd`
+- 你需要JD自查时 → 用 `/lhg-job-desc:jd-check`
+- 你需要JD评分时 → 用 `/lhg-job-desc:jd-score`
 
-blocker 清零才算"可发布"；**把歧视词换成隐晦说法（如"限男性"改"需要较强体力"）算换皮，照样拦截**。
+**什么时候不用：**
+
+- 你只需要其中一个零散能力时 → 本插件是成套流程，单点需求用更轻量的 skill 更合适
+- 你希望 AI 完全自由发挥、不接受任何自查与硬门时 → 它的规则审计与 hooks 会介入（可关，但那就别装它）
+- 你的场景不在上面命令表覆盖范围内时 → 先看命令表，没有对应命令就别硬套
 
 ## 目录结构
 
 ```
 lhg-job-desc/
-├── .claude-plugin/          # plugin.json（插件清单）+ marketplace.json（本仓即市场）
-├── commands/                # 4 个命令：jd / jd-check / jd-score / jd-versions
-├── skills/                  # 4 个平台中立 skill（lhg-jd-structure/duty/qual/inclusive）
-├── agents/                  # 2 个专家 agent（jd-writer / jd-auditor）
-├── hooks/                   # 2 个硬门（发布拦截 / 歧视词警告）+ 豁免说明
-├── scripts/audit/           # 18 条确定性审计规则（零第三方依赖）
-├── fixtures/                # 冒烟测试用例（bad/a.md + bad/b.md / good/jd.md）
-├── smoke_test.py            # 一键冒烟测试（51 项）
-├── ATTRIBUTION.md           # 灵感来源声明
-└── LICENSE                  # MIT
+├── smoke_test.py          # 一键冒烟测试
+├── ATTRIBUTION.md         # 灵感来源与许可声明
+├── LICENSE                # MIT
+├── README.md              # 本文件
+├── .claude-plugin/
+├── agents/
+├── commands/
+├── fixtures/
+├── hooks/
+├── scripts/
+├── skills/
 ```
-
-## 什么时候用 / 什么时候不用
-
-**什么时候用：**
-
-- 你要从零写一份 JD，只有用人部门几句口头描述 → `/lhg-job-desc:jd` 15 分钟出初稿
-- JD 写完准备发布，吃不准有没有歧视风险 → `/lhg-job-desc:jd-check` 先审后发
-- 手里有 2-3 份 JD，不知道哪份好 → `/lhg-job-desc:jd-score` 量化打分横向对比
-- 一份 JD 要发招聘网站、转内推、给猎头三个渠道 → `/lhg-job-desc:jd-versions` 一次生成三版
-
-**什么时候不用：**
-
-- 你想让 AI 帮你把"限男性""35岁以下"写得委婉点蒙混过关 → **本插件不干这个**，这是红线，换皮照样拦截
-- 你要的是英文 Offer Letter / 劳动合同 → 本插件只做 JD（职位描述），不做法律文书
-- 你希望 JD 自动发布到招聘网站 → 本插件只生成和审计文本，发布动作由你亲手完成（发布前硬门会先审计）
-- 你只想找个 JD 模板套一套 → 去套模板更快；本插件是"撰写+审计+评分"全链路，模板只是副产品
-
-## lhg-plugs 插件矩阵
-
-| 插件 | 一句话 | 安装 |
-|---|---|---|
-| [lhg-job-desc](https://github.com/lhg-plugs/lhg-job-desc) | JD撰写专家：岗位信息→评分→多版本，18条规则拦截歧视词 | `/plugin install lhg-job-desc@lhg-plugs` |
-| *（后续插件在此追加，保持表格格式一致）* | | |
 
 ## 自检与反馈
 
-本插件自带质检：每次使用后可跑 `python3 smoke_test.py` 一键验证（JSON 合法、skill/command/agent 完整性、18 条规则、fixtures 命中、hooks 行为）。
+本插件自带质检：每次使用后可跑 `python3 smoke_test.py` 一键验证（本次实测 51 项全部通过）。
 
 发现 bug 或有改进建议，以 `[QC] <一句话问题>` 为标题提交到 https://github.com/lhg-plugs/lhg-job-desc/issues，正文写清"复现步骤 → 实际表现 → 期望表现"。
+
+同门插件见 [lhg-plugs](https://github.com/lhg-plugs)，86 个插件的完整矩阵在 [marketplace](https://github.com/lhg-plugs/marketplace) 维护。
 
 ## 出品：刘洪光
 
